@@ -1,0 +1,14 @@
+.env
+config/secrets.yaml
+config/.storage/
+config/.cloud/
+config/home-assistant_v2.db*
+config/home-assistant.log*
+config/custom_components/
+config/.HA_VERSION
+config/deps/
+config/tts/
+backups/
+node_modules/
+.next/
+.env*.local

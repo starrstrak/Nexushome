@@ -1,0 +1,54 @@
+# Nexushome - Phase 1 infrastructure.
+# Image tags are pinned on purpose: verify the latest stable tags before first start
+#   HA:          https://github.com/home-assistant/core/releases
+#   cloudflared: https://github.com/cloudflare/cloudflared/releases
+# Mosquitto is intentionally NOT included (see README / Phase 1 answer).
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.10.3
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host # required for mDNS/UDP discovery (WiZ, Miio, Tuya, Alexa local)
+    environment:
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - ./config:/config
+      - /etc/localtime:/etc/localtime:ro
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8123/manifest.json >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.0
+    container_name: cloudflared
+    restart: unless-stopped
+    # host network: tunnel reaches HA on http://127.0.0.1:8123 (hence trusted_proxies 127.0.0.1)
+    network_mode: host
+    command: tunnel --no-autoupdate run
+    environment:
+      # Remote-managed tunnel token, set in .env (never committed)
+      TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN:?CF_TUNNEL_TOKEN missing in .env}
+    depends_on:
+      homeassistant:
+        condition: service_started
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

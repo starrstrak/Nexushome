@@ -1,0 +1,37 @@
+# Home Assistant core configuration - Nexushome
+
+homeassistant:
+  name: Maison
+  unit_system: metric
+  time_zone: Europe/Zurich
+  currency: CHF
+  country: CH
+  language: fr
+  external_url: !secret external_url
+  internal_url: !secret internal_url
+
+default_config:
+
+http:
+  # Behind cloudflared running on the same host (network_mode: host)
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 127.0.0.1
+    - ::1
+  # Ban IPs after repeated failed logins (writes ip_bans.yaml)
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+  # Strict CORS: only the web app origin, never "*"
+  cors_allowed_origins:
+    - !secret frontend_origin
+
+recorder:
+  purge_keep_days: 14
+  commit_interval: 30
+
+logger:
+  default: warning
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
