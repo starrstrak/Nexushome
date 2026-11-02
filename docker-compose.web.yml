@@ -1,0 +1,24 @@
+# Optional: self-host the frontend (alternative to Vercel).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.web.yml up -d --build
+# Then add a Cloudflare Tunnel public hostname: home.<domain> -> http://localhost:3000
+services:
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_HA_URL: ${NEXT_PUBLIC_HA_URL:?NEXT_PUBLIC_HA_URL missing in .env}
+    container_name: nexushome-web
+    restart: unless-stopped
+    environment:
+      # Read at runtime by src/proxy.ts to build the CSP connect-src.
+      NEXT_PUBLIC_HA_URL: ${NEXT_PUBLIC_HA_URL}
+    ports:
+      - "127.0.0.1:3000:3000" # loopback only: reached through cloudflared (host network)
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
