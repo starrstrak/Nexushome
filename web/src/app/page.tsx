@@ -4,6 +4,7 @@ import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { EntityRow } from "@/components/EntityRow";
 import { useAllEntities } from "@/hooks/useEntity";
+import { isDemo } from "@/lib/ha/demo";
 import { domainOf } from "@/types/ha";
 
 // Domains useful for this project (Phase 2). Used to discover real entity ids.
@@ -19,6 +20,9 @@ export default function HomePage() {
         <h1 className="text-xl font-semibold">Nexushome</h1>
         <ConnectionBadge />
       </header>
+      {isDemo && (
+        <p className="mb-4 rounded-xl border border-warn/40 bg-card p-3 text-sm text-warn">Mode démo : données fictives, aucun Home Assistant connecté.</p>
+      )}
       <ConnectionBanner />
       {DOMAINS.map((domain) => {
         const list = ids.filter((id) => domainOf(id) === domain);

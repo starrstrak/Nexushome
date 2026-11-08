@@ -14,3 +14,10 @@ npm run typecheck && npm run build
 - Hooks: `useEntity`, `useAllEntities`, `useService`, `useConnectionStatus`.
 - Security headers: HSTS etc. in `next.config.ts`; per-request CSP nonce in `src/proxy.ts`.
 - PWA: `manifest.ts`, `public/sw.js` (shell only, never caches HA traffic), icons in `public/icons`.
+
+## Demo mode (no Home Assistant needed)
+
+```bash
+NEXT_PUBLIC_DEMO=1 NEXT_PUBLIC_HA_URL=https://ha.example.ch npm run dev
+```
+Fake `demo_*` entities, fake connection; never set `NEXT_PUBLIC_DEMO` in production.

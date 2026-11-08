@@ -10,6 +10,7 @@ import {
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { authenticate, clearTokens } from "@/lib/ha/auth";
 import { readHaConfig } from "@/lib/ha/config";
+import { createDemoConnection, isDemo } from "@/lib/ha/demo";
 import { EntityStore } from "@/lib/ha/entity-store";
 import type { ConnectionStatus } from "@/types/ha";
 
@@ -36,6 +37,16 @@ export function HaProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     let conn: Connection | null = null;
     let unsubEntities: (() => void) | null = null;
+
+    if (isDemo) {
+      // Demo: fake entities, no network, no auth.
+      setConnection(createDemoConnection(store));
+      setStatus("connected");
+      return () => {
+        store.clear();
+        setConnection(null);
+      };
+    }
 
     (async () => {
       try {
