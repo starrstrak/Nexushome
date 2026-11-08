@@ -1,0 +1,17 @@
+# LOCAL TEST on a Mac (Docker Desktop): Home Assistant only, no tunnel.
+# network_mode: host does not work like on Linux, so the port is published instead.
+# Consequence: LAN auto-discovery (WiZ, Tuya, Alexa local...) is limited. Use a Linux host for real use.
+# Usage: docker compose -f docker-compose.mac.yml up -d
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.10.3
+    container_name: homeassistant
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Zurich
+    volumes:
+      - ./config:/config
+    ports:
+      - "127.0.0.1:8123:8123" # reachable from this Mac only
+    security_opt:
+      - no-new-privileges:true

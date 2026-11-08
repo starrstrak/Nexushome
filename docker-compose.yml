@@ -1,5 +1,5 @@
 # Nexushome - Phase 1 infrastructure.
-# Image tags are pinned on purpose: verify the latest stable tags before first start
+# Image tags are pinned on purpose (checked to exist on 2026-11-08); update after reading release notes
 #   HA:          https://github.com/home-assistant/core/releases
 #   cloudflared: https://github.com/cloudflare/cloudflared/releases
 # Mosquitto is intentionally NOT included (see README / Phase 1 answer).
@@ -30,7 +30,7 @@ services:
         max-file: "3"
 
   cloudflared:
-    image: cloudflare/cloudflared:2026.10.0
+    image: cloudflare/cloudflared:2026.10.7
     container_name: cloudflared
     restart: unless-stopped
     # host network: tunnel reaches HA on http://127.0.0.1:8123 (hence trusted_proxies 127.0.0.1)
