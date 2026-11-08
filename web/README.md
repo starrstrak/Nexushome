@@ -18,6 +18,6 @@ npm run typecheck && npm run build
 ## Demo mode (no Home Assistant needed)
 
 ```bash
-NEXT_PUBLIC_DEMO=1 NEXT_PUBLIC_HA_URL=https://ha.example.ch npm run dev
+npm run demo   # cross-platform (Windows included)
 ```
 Fake `demo_*` entities, fake connection; never set `NEXT_PUBLIC_DEMO` in production.
