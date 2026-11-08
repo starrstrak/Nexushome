@@ -15,19 +15,42 @@ function ent(entity_id: string, state: string, attributes: Record<string, unknow
 
 function seed(): HassEntities {
   const list: HassEntity[] = [
-    ent("light.demo_salon", "on", { friendly_name: "Démo Lampe salon", brightness: 180, color_temp_kelvin: 3000 }),
-    ent("light.demo_chambre", "off", { friendly_name: "Démo Lampe chambre" }),
+    ent("light.demo_salon", "on", {
+      friendly_name: "Démo Lampe salon",
+      supported_color_modes: ["color_temp", "hs"],
+      brightness: 180,
+      color_temp_kelvin: 3000,
+      min_color_temp_kelvin: 2200,
+      max_color_temp_kelvin: 6500,
+      hs_color: [30, 60],
+    }),
+    ent("light.demo_chambre", "off", { friendly_name: "Démo Lampe chambre", supported_color_modes: ["brightness"], brightness: 120 }),
     ent("switch.demo_prise_a", "on", { friendly_name: "Démo Prise A" }),
-    ent("sensor.demo_prise_a_puissance", "42.5", { friendly_name: "Démo Prise A puissance", unit_of_measurement: "W" }),
+    ent("sensor.demo_prise_a_power", "42.5", { friendly_name: "Démo Prise A puissance", unit_of_measurement: "W", device_class: "power" }),
+    ent("switch.demo_prise_c", "on", { friendly_name: "Démo Prise C", current_power_w: 7.2 }),
     ent("switch.demo_prise_b", "unavailable", { friendly_name: "Démo Prise B (hors ligne)" }),
     ent("vacuum.demo_robot", "docked", {
       friendly_name: "Démo Aspirateur",
-      battery_level: 88,
       fan_speed: "balanced",
       fan_speed_list: ["quiet", "balanced", "turbo", "max"],
     }),
-    ent("media_player.demo_tv", "playing", { friendly_name: "Démo TV", volume_level: 0.3, source: "HDMI 1" }),
-    ent("media_player.demo_echo", "idle", { friendly_name: "Démo Echo Dot", volume_level: 0.4 }),
+    ent("sensor.demo_robot_battery", "88", { friendly_name: "Démo Aspirateur batterie", device_class: "battery", unit_of_measurement: "%" }),
+    ent("media_player.demo_tv", "playing", {
+      friendly_name: "Démo TV",
+      supported_features: 128 | 256 | 4 | 8 | 1024 | 2048,
+      volume_level: 0.3,
+      is_volume_muted: false,
+      source: "HDMI 1",
+      source_list: ["HDMI 1", "HDMI 2", "TV"],
+    }),
+    ent("media_player.demo_firetv", "idle", {
+      friendly_name: "Démo Fire TV",
+      volume_level: 0.5,
+      source: "Netflix",
+      source_list: ["Netflix", "YouTube", "Prime Video", "Disney+"],
+    }),
+    ent("media_player.demo_echo_dot", "idle", { friendly_name: "Démo Echo Dot", volume_level: 0.4 }),
+    ent("media_player.demo_echo_spot", "playing", { friendly_name: "Démo Echo Spot", volume_level: 0.25 }),
   ];
   return Object.fromEntries(list.map((e) => [e.entity_id, e]));
 }
@@ -46,7 +69,18 @@ export function createDemoConnection(store: EntityStore): Connection {
     });
   };
 
+  // Live power readings that follow the plug state, to show the streaming UI.
+  const timer = setInterval(() => {
+    const a = store.get("switch.demo_prise_a")?.state === "on";
+    patch("sensor.demo_prise_a_power", a ? (40 + Math.random() * 6).toFixed(1) : "0");
+    const c = store.get("switch.demo_prise_c")?.state === "on";
+    patch("switch.demo_prise_c", null, { current_power_w: c ? Number((7 + Math.random()).toFixed(1)) : 0 });
+  }, 2000);
+
   const fake = {
+    close() {
+      clearInterval(timer);
+    },
     async sendMessagePromise(msg: {
       type: string;
       domain?: string;
@@ -62,9 +96,15 @@ export function createDemoConnection(store: EntityStore): Connection {
         const cur = store.get(id);
         const on = cur?.state === "on";
         switch (`${msg.domain}.${msg.service}`) {
-          case "light.turn_on":
+          case "light.turn_on": {
+            const d = { ...(msg.service_data ?? {}) } as Record<string, unknown>;
+            if (typeof d.brightness_pct === "number") d.brightness = Math.round(d.brightness_pct * 2.55);
+            delete d.brightness_pct;
+            patch(id, "on", d);
+            break;
+          }
           case "switch.turn_on":
-            patch(id, "on", msg.service_data ?? {});
+            patch(id, "on");
             break;
           case "light.turn_off":
           case "switch.turn_off":
@@ -73,6 +113,27 @@ export function createDemoConnection(store: EntityStore): Connection {
           case "light.toggle":
           case "switch.toggle":
             patch(id, on ? "off" : "on");
+            break;
+          case "media_player.toggle":
+            patch(id, cur?.state === "off" ? "idle" : "off");
+            break;
+          case "media_player.volume_set":
+            patch(id, null, { volume_level: msg.service_data?.volume_level });
+            break;
+          case "media_player.volume_up":
+            patch(id, null, { volume_level: Math.min(1, ((cur?.attributes.volume_level as number) ?? 0) + 0.05) });
+            break;
+          case "media_player.volume_down":
+            patch(id, null, { volume_level: Math.max(0, ((cur?.attributes.volume_level as number) ?? 0) - 0.05) });
+            break;
+          case "media_player.volume_mute":
+            patch(id, null, { is_volume_muted: msg.service_data?.is_volume_muted });
+            break;
+          case "media_player.select_source":
+            patch(id, "playing", { source: msg.service_data?.source });
+            break;
+          case "media_player.media_play_pause":
+            patch(id, on || cur?.state === "playing" ? "paused" : "playing");
             break;
           case "vacuum.start":
             patch(id, "cleaning");

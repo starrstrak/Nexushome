@@ -40,9 +40,11 @@ export function HaProvider({ children }: { children: ReactNode }) {
 
     if (isDemo) {
       // Demo: fake entities, no network, no auth.
-      setConnection(createDemoConnection(store));
+      const demo = createDemoConnection(store);
+      setConnection(demo);
       setStatus("connected");
       return () => {
+        demo.close();
         store.clear();
         setConnection(null);
       };
